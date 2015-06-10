@@ -2,7 +2,7 @@
 
 SoftwareSerial mySerial(11, 12); // RX, TX
 
-#define TOTAL_PINS 18
+#define TOTAL_PINS 22
 
 #define PIN_CAPABILITY_NONE      0x00
 #define PIN_CAPABILITY_DIGITAL   0x01
@@ -21,14 +21,15 @@ SoftwareSerial mySerial(11, 12); // RX, TX
 
 #define WAIT_SECONDS          3
 
-#define FIRST_ANALOG_PIN        5
-#define IS_PIN_DIGITAL(p)       (((p) >= 0 && (p) < TOTAL_PINS))
-#define IS_PIN_ANALOG(p)        ((p) >= 5 && (p) < 14)
-#define IS_PIN_PWM(p)           ((p) >= 3 && (p) <= 7)
-#define PIN_TO_ANALOG(p)        ((p) - FIRST_ANALOG_PIN)
+#define IS_PIN_DIGITAL(p)       (((p) >= 0 && (p) <= 10) || ((p) >= 14 && (p) < TOTAL_PINS && (p) != 17 ))
+#define IS_PIN_ANALOG(p)        ((p) == 4 || (p) == 6 || ((p) >= 8 && (p) <= 10) || ((p) >= 18 && (p) < TOTAL_PINS))
+#define IS_PIN_PWM(p)           ((p) == 3 || (p) == 5 || (p) == 6 || (p) == 9 || (p) == 10 )
+#define IS_PIN_SERVO(p)         (IS_PIN_DIGITAL(p) && (p) - 2 < MAX_SERVOS)
+#define IS_PIN_I2C(p)           ((p) == 2 || (p) == 3)
+#define PIN_TO_DIGITAL(p)       (p)
+#define PIN_TO_ANALOG(p)        ((p) >= 18 ? (p) - 18:((p) >= 8 ? (p):((p) == 6 ? 7 :6)))
+#define PIN_TO_PWM(p)           PIN_TO_DIGITAL(p)
 
-byte pinSerial[] = {0,1,2,3,5,6,9,10,4,8,18,19,20,21,7,14,15,16};
-int pinAnalog[] = {A7,A9,A10,A6,A8,A0,A1,A2,A3};
 byte pin_mode[TOTAL_PINS];
 byte pin_state[TOTAL_PINS];
 byte pin_pwm[TOTAL_PINS];
@@ -41,8 +42,10 @@ void setup()
    for (int pin = 0; pin < TOTAL_PINS; pin++)
     {
         // Set pin to input with internal pull up
-        pinMode(pinSerial[pin], OUTPUT);
-        digitalWrite(pinSerial[pin], HIGH);
+        if (IS_PIN_DIGITAL(pin)) {
+          pinMode(pin, OUTPUT);
+          digitalWrite(pin, HIGH);
+        }
         
         // Save pin mode and state
         pin_mode[pin] = PIN_MODE_OUTPUT;
@@ -65,7 +68,7 @@ byte reportDigitalInput()
     
     if (pin_mode[pin] == PIN_MODE_INPUT)
     {
-        byte current_state = digitalRead(pinSerial[pin]);
+        byte current_state = digitalRead(pin);
         
         if (pin_state[pin] != current_state)
         {
@@ -126,10 +129,18 @@ byte reportPinAnalogData()
     static byte pin = 0;
     byte report = 0;
     
+    if (!IS_PIN_DIGITAL(pin))
+    {
+        pin++;
+        if (pin >= TOTAL_PINS)
+            pin = 0;
+        return 0;
+    }
+    
     if (pin_mode[pin] == PIN_MODE_ANALOG)
     {
         delay(WAIT_SECONDS);
-        uint16_t value = analogRead(pinAnalog[PIN_TO_ANALOG(pin)]);
+        uint16_t value = analogRead(PIN_TO_ANALOG(pin));
         byte value_lo = value;
         byte value_hi = value>>8;
         
@@ -167,6 +178,9 @@ void loop()
       {
          for (int pin = 0; pin < TOTAL_PINS; pin++)
             {
+                    if (!IS_PIN_DIGITAL(pin)) {
+                      continue;
+                    }
                     reportPinCapability(pin);
                     if ( (pin_mode[pin] == PIN_MODE_INPUT) || (pin_mode[pin] == PIN_MODE_OUTPUT) )
                     {
@@ -191,10 +205,10 @@ void loop()
         int state = mySerial.read();
         
         if (state == PIN_STATE_HIGH) {
-          digitalWrite(pinSerial[pin], HIGH);
+          digitalWrite(pin, HIGH);
           pin_state[pin] = HIGH;
         } else {
-          digitalWrite(pinSerial[pin], LOW);
+          digitalWrite(pin, LOW);
           pin_state[pin] = LOW;
         }
       }
@@ -205,7 +219,7 @@ void loop()
         byte pin = mySerial.read();
         delay(WAIT_SECONDS);
         byte value = mySerial.read();
-        analogWrite(pinSerial[pin], value);
+        analogWrite(pin, value);
         pin_pwm[pin] = value;
       }
       break;
@@ -221,25 +235,25 @@ void loop()
           pin_mode[pin] = mode;
           if (mode == PIN_MODE_OUTPUT)
           {
-            pinMode(pinSerial[pin], OUTPUT);
-            digitalWrite(pinSerial[pin], HIGH);
+            pinMode(pin, OUTPUT);
+            digitalWrite(pin, HIGH);
             pin_state[pin] = HIGH;
             reportPinDigitalData(pin);
           }
           else if (mode == PIN_MODE_INPUT)
           {
-             pinMode(pinSerial[pin], INPUT);
+             pinMode(pin, INPUT);
              reportPinDigitalData(pin);
           } 
           else if (mode == PIN_MODE_ANALOG && IS_PIN_ANALOG(pin))
           {
-            pinMode(pinSerial[pin], INPUT);
+            pinMode(pin, INPUT);
             reportPinDigitalData(pin);
           }
           else if (mode == PIN_MODE_PWM && IS_PIN_PWM(pin))
           {
-            pinMode(pinSerial[pin], OUTPUT);
-            analogWrite(pinSerial[pin], 0);
+            pinMode(pin, OUTPUT);
+            analogWrite(pin, 0);
             pin_pwm[pin] = 0;
             reportPinPWMData(pin);
           }
@@ -260,6 +274,4 @@ void loop()
 
   
 }
-
-
 
