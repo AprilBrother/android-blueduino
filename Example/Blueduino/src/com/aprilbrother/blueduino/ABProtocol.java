@@ -2,6 +2,8 @@ package com.aprilbrother.blueduino;
 
 import java.io.UnsupportedEncodingException;
 
+import android.util.Log;
+
 import com.aprilbrother.blueduino.UartService;
 import com.aprilbrother.blueduino.bean.PinInfo;
 import com.aprilbrother.blueduino.contants.Contants;
@@ -10,7 +12,7 @@ import com.aprilbrother.blueduino.utils.ByteUtil;
 
 public class ABProtocol {
 
-	private static byte[] mValues = new byte[512];
+	public static byte[] mValues = new byte[0];
 	private static PinInfo pinInfo = new PinInfo();
 
 	/**
@@ -84,7 +86,6 @@ public class ABProtocol {
 					}
 					break;
 				case 'P':
-
 					if (i < mValues.length - 2) {
 						int pin = mValues[i++];
 						int capability = mValues[i++];
@@ -96,9 +97,14 @@ public class ABProtocol {
 									% GlobalVariables.pinSize == 0) {
 								GlobalVariables.pinInfos.clear();
 							}
-							GlobalVariables.pinInfos.add(pin, pinInfo);
+//							GlobalVariables.pinInfos.add(pin, pinInfo);
+							GlobalVariables.pinInfos.add(pinInfo);
 						} else {
-							GlobalVariables.pinInfos.add(pin, pinInfo);
+							pinInfo = new PinInfo();
+							pinInfo.setPin(pin);
+							pinInfo.setCapability(capability);
+//							GlobalVariables.pinInfos.add(pin, pinInfo);
+							GlobalVariables.pinInfos.add(pinInfo);
 						}
 					}
 					break;
@@ -108,12 +114,23 @@ public class ABProtocol {
 						int mode = mValues[i++];
 						int receiveValue = mValues[i++];
 						int _mode = mode & 0x0F;
+						
+						Log.i("Test", "pin = "+pin);
+						Log.i("Test", "mode = "+mode);
+						
 						if ((mode == Contants.PIN_MODE_INPUT)
 								|| (mode == Contants.PIN_MODE_OUTPUT)) {
 
-							GlobalVariables.pinInfos.get(pin).setMode(mode);
-							GlobalVariables.pinInfos.get(pin).setValue(
-									receiveValue);
+							for(PinInfo info : GlobalVariables.pinInfos){
+								if(info.getPin() == pin){
+									info.setMode(mode);
+									info.setValue(receiveValue);
+								}
+							}
+							
+//							GlobalVariables.pinInfos.get(pin).setMode(mode);
+//							GlobalVariables.pinInfos.get(pin).setValue(
+//									receiveValue);
 
 						} else if (_mode == Contants.PIN_MODE_ANALOG) {
 							int mValue = 0;
@@ -122,14 +139,34 @@ public class ABProtocol {
 							}else if(receiveValue<0){
 								mValue = 255 + receiveValue;
 							}
-							GlobalVariables.pinInfos.get(pin).setMode(_mode);
-							GlobalVariables.pinInfos.get(pin).setValue(
-									mValue);
+							
+							Log.i("Test", "pin = "+pin);
+							Log.i("Test", "mode = "+mode);
+							
+							for(PinInfo info : GlobalVariables.pinInfos){
+								if(info.getPin() == pin){
+									info.setMode(mode);
+									info.setValue(mValue);
+								}
+							}
+//							GlobalVariables.pinInfos.get(pin).setMode(_mode);
+//							GlobalVariables.pinInfos.get(pin).setValue(
+//									mValue);
 							
 						} else if (mode == Contants.PIN_MODE_PWM) {
-							GlobalVariables.pinInfos.get(pin).setMode(mode);
-							GlobalVariables.pinInfos.get(pin).setValue(
-									receiveValue);
+							Log.i("Test", "pin = "+pin);
+							Log.i("Test", "mode = "+mode);
+							for(PinInfo info : GlobalVariables.pinInfos){
+								if(info.getPin() == pin){
+									info.setMode(mode);
+									info.setValue(receiveValue);
+								}
+							}
+							
+							
+//							GlobalVariables.pinInfos.get(pin).setMode(mode);
+//							GlobalVariables.pinInfos.get(pin).setValue(
+//									receiveValue);
 						}
 					}
 					break;

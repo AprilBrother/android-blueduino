@@ -230,9 +230,10 @@ public class OperateActivity extends Activity {
 	}
 
 	/**
-	 * 连接服务
-	 * connect the service to operate bluetooth
-	 * @param device 连接服务的蓝牙设备
+	 * 连接服务 connect the service to operate bluetooth
+	 * 
+	 * @param device
+	 *            连接服务的蓝牙设备
 	 */
 	private void connectService(BluetoothDevice device) {
 		mService.connect(device.getAddress());
@@ -292,22 +293,26 @@ public class OperateActivity extends Activity {
 			}
 			// *********************//
 			if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
-				
+
 				final byte[] txValue = intent
 						.getByteArrayExtra(UartService.EXTRA_DATA);
 				try {
-					// 返回的数据通上一个一样则不解析
+					// 返回的数据同上一个一样则不解析
 					// if the value == last value don't parar
 					if (lastValue != null) {
-						if (!Arrays.equals(lastValue, txValue)) {
-							lastValue = txValue;
-							ABProtocol.parseData(txValue);
-							if (txValue.length != 2 && txValue.length != 20) {
-								pinsInfo = GlobalVariables.pinInfos;
-								handler.sendEmptyMessage(0);
-								progressDialog.dismiss();
+//						if (!Arrays.equals(lastValue, txValue)) {
+						synchronized (OperateActivity.class) {
+							if(lastValue != txValue){
+								lastValue = txValue;
+								ABProtocol.parseData(txValue);
+								if (txValue.length != 2 && txValue.length != 20) {
+									pinsInfo = GlobalVariables.pinInfos;
+									handler.sendEmptyMessage(0);
+									progressDialog.dismiss();
+								}
 							}
 						}
+						
 					} else {
 						lastValue = txValue;
 						ABProtocol.parseData(txValue);
@@ -347,7 +352,7 @@ public class OperateActivity extends Activity {
 
 		@Override
 		public int getCount() {
-			return GlobalVariables.pinSize;
+			return GlobalVariables.pinInfos.size();
 		}
 
 		@Override
@@ -389,10 +394,14 @@ public class OperateActivity extends Activity {
 				view = convertView;
 				holder = (ViewHolder) view.getTag();
 			}
-			holder.tv_operate_info_pin
-					.setText(Contants.pinSerial[GlobalVariables.pinInfos.get(
-							position).getPin()]
-							+ "");
+			// holder.tv_operate_info_pin
+			// .setText(Contants.pinSerial[GlobalVariables.pinInfos.get(
+			// position).getPin()]
+			// + "");
+			holder.tv_operate_info_pin.setText(GlobalVariables.pinInfos.get(
+					position).getPin()
+					+ "");
+
 			setModle(position, holder);
 			setChangeModle(position, holder);
 			setChangeValue(position, holder);
@@ -400,8 +409,7 @@ public class OperateActivity extends Activity {
 		}
 
 		/**
-		 * 输出值
-		 * Output
+		 * 输出值 Output
 		 */
 		private void setChangeValue(final int position, ViewHolder holder) {
 			switch (GlobalVariables.pinInfos.get(position).getMode()) {
@@ -542,6 +550,7 @@ public class OperateActivity extends Activity {
 					.setOnClickListener(new OnClickListener() {
 						@Override
 						public void onClick(View v) {
+							
 							// change the mode
 							int capability = GlobalVariables.pinInfos.get(
 									position).getCapability();
@@ -611,11 +620,12 @@ public class OperateActivity extends Activity {
 												public void onClick(
 														DialogInterface dialog,
 														int which) {
-
+													ABProtocol.mValues = new byte[0];
 													// set the mode
-
-													byte pin = (byte) (positon & 0xFF);
-
+//													byte pin = (byte) (positon & 0xFF);
+													
+													int myPin = GlobalVariables.pinInfos.get(position).getPin();
+													byte pin = (byte) (myPin & 0xFF);
 													if (strings[which]
 															.equals("Input")) {
 														ABProtocol
@@ -623,7 +633,8 @@ public class OperateActivity extends Activity {
 																		mService,
 																		pin,
 																		Contants.PIN_MODE_INPUT);
-														holder.iv_operate_info_input_output.setClickable(false);	
+														holder.iv_operate_info_input_output
+																.setClickable(false);
 													} else if (strings[which]
 															.equals("Output")) {
 														ABProtocol
@@ -631,7 +642,8 @@ public class OperateActivity extends Activity {
 																		mService,
 																		pin,
 																		Contants.PIN_MODE_OUTPUT);
-														holder.iv_operate_info_input_output.setClickable(true);
+														holder.iv_operate_info_input_output
+																.setClickable(true);
 													} else if (strings[which]
 															.equals("Analog")) {
 														ABProtocol
@@ -670,6 +682,7 @@ public class OperateActivity extends Activity {
 		GlobalVariables.pinSize = 0;
 		pinsInfo.clear();
 		GlobalVariables.pinInfos.clear();
+		ABProtocol.mValues = new byte[0];
 		try {
 			LocalBroadcastManager.getInstance(this).unregisterReceiver(
 					UARTStatusChangeReceiver);

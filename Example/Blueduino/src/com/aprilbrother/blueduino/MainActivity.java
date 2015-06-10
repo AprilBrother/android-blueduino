@@ -11,7 +11,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -115,7 +114,7 @@ public class MainActivity extends Activity {
 			public void onLeScan(BluetoothDevice device, int rssi,
 					byte[] scanRecord) {
 				if (!device_macs.contains(device.getAddress())) {
-					if(device.getName().contains("ZeroBeacon"))
+					if(device.getName()!= null && device.getName().contains("ZeroBeacon"))
 					devices.add(device);
 					device_macs.add(device.getAddress());
 					handler.sendEmptyMessage(0);
@@ -123,7 +122,6 @@ public class MainActivity extends Activity {
 			}
 		};
 		mBluetoothAdapter.startLeScan(mScanCallback);
-		Log.i("Test", "startLeScan");
 		mHandler.postDelayed(new Runnable() {
 			@Override
 			public void run() {
@@ -140,7 +138,6 @@ public class MainActivity extends Activity {
 		public void setDeviceList(ArrayList<BluetoothDevice> list) {
 			if (list != null) {
 				myDevices = (ArrayList<BluetoothDevice>) list.clone();
-				Log.i("Test", "size =" + myDevices.size());
 				notifyDataSetChanged();
 			}
 		}

@@ -117,7 +117,9 @@ public class UartService extends Service {
 		@Override
 		public void onCharacteristicChanged(BluetoothGatt gatt,
 				BluetoothGattCharacteristic characteristic) {
-
+			
+			Log.i(TAG, "onCharacteristicChanged");
+			
 			byte[] value = characteristic.getValue();
 			try {
 				Thread.sleep(5);
@@ -376,10 +378,13 @@ public class UartService extends Service {
 	}
 
 	public boolean writeRXCharacteristic(byte[] value) {
-		BluetoothGattService RxService = mBluetoothGatt
-				.getService(RX_SERVICE_UUID);
-
-		showMessage("mBluetoothGatt null" + mBluetoothGatt);
+		BluetoothGattService RxService = null;
+		if(mBluetoothGatt!=null){
+			 RxService = mBluetoothGatt
+						.getService(RX_SERVICE_UUID);
+		}else{
+			showMessage("mBluetoothGatt null" + mBluetoothGatt);
+		}
 		if (RxService == null) {
 			showMessage("Rx service not found!");
 			broadcastUpdate(DEVICE_DOES_NOT_SUPPORT_UART);
